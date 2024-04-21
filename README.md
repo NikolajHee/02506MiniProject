@@ -10,3 +10,7 @@ A PyTorch Convolutional Neural Network (CNN) trained on the data 'Segmentation o
 - Sliding frame (creating an training image for each movement of the frame)
 
 
+# Papers
+- https://arxiv.org/pdf/1505.04597.pdf
+- Crowdsourcing the creation of image segmentation algorithms for connectomics. Frontiers in neuroanatomy, Ignacio Arganda-Carreras
+
