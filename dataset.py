@@ -123,7 +123,7 @@ class TEST_EM(Dataset):
         
 if __name__ == '__main__':
 
-    train_dataset = TRAIN_EM('', patch_size=None)
+    train_dataset = TRAIN_EM('', patch_size=128)
 
     # for training in batches:
     train_loader = DataLoader(dataset=train_dataset,
