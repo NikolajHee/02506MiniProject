@@ -69,7 +69,7 @@ class TRAIN_EM(Dataset):
         if self.patch_size is not None:
             img = self.images[idx]
             lbl = self.labels[idx]
-            return (img / 255, lbl / 255)
+            return (img.view(1,self.patch_size,self.patch_size) / 255, lbl.view(1,self.patch_size,self.patch_size) / 255)
         else:
             return (torch.tensor(io.imread(self.train_images_path[idx])).view(1, 512, 512)/255, 
                     torch.tensor(io.imread(self.train_labels_path[idx])).view(1, 512, 512)/255)
@@ -116,7 +116,7 @@ class TEST_EM(Dataset):
     def __getitem__(self, idx):
         if self.patch_size is not None:
             img = self.images[idx]
-            return img / 255
+            return img.view(1,self.patch_size,self.patch_size) / 255
         else:
             torch.tensor(io.imread(self.test_images_path[idx])).view(1, 512, 512)/255
 

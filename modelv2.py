@@ -49,6 +49,7 @@ class CNN_FOR_SEGMENTATION(nn.Module):
     
     def forward(self, x):
         # Pass through the encoder
+        #print(x.shape)
         x = self.encoder1(x)
         x = self.encoder2(x)
 
@@ -124,11 +125,11 @@ if __name__ == '__main__':
 
 
     train_loader = torch.utils.data.DataLoader(dataset = data,
-                                               batch_size = 1,
+                                               batch_size = 16,
                                                shuffle = True)
     
 
-    loss = train(model, train_loader, optimizer, criterion, 3)
+    loss = train(model, train_loader, optimizer, criterion, 100)
 
     plt.plot(np.mean(loss, axis=1))
     plt.savefig('loss.png')
@@ -148,7 +149,7 @@ if __name__ == '__main__':
 
         accuracy = np.mean(predict == data[i][1].view(128,128).numpy())
 
-        axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy())
+        axs[i, 0].imshow(data[i][0].squeeze())
         axs[i, 1].imshow(y_hat.squeeze().detach().cpu().numpy() > 0.5)
         axs[i, 1].set_title(f"accuracy: {accuracy:.2f}")
         axs[i, 2].imshow(data[i][1].view(128,128))
@@ -167,7 +168,7 @@ if __name__ == '__main__':
     for i in range(N_images):
         y_hat = model.forward(data_[i].view(1,128,128).to(DEVICE))
         axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy())
-        axs[i, 1].imshow(data_[i])
+        axs[i, 1].imshow(data_[i].squeeze())
     plt.savefig('test.png')
     plt.show()
 
