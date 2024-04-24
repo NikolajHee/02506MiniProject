@@ -73,61 +73,57 @@ class TRAIN_EM(Dataset):
         else:
             return (torch.tensor(io.imread(self.train_images_path[idx])).view(1, 512, 512)/255, 
                     torch.tensor(io.imread(self.train_labels_path[idx])).view(1, 512, 512)/255)
-
-
-        if self.resize is None and self.patch_size is None:
-            return (torch.tensor(io.imread(self.train_images_path[idx])).view(1, 512, 512)/255, 
-                    torch.tensor(io.imread(self.train_labels_path[idx])).view(1, 512, 512)/255)
-
-        elif self.patch_size: 
-            x_img = torch.tensor(io.imread(self.train_images_path[idx]))
-            patches_img = x_img.unfold(1, self.patch_size, self.patch_size).unfold(0, self.patch_size, self.patch_size)
-            patches_img = patches_img.contiguous().view(-1, self.patch_size, self.patch_size)/255
-
-            x_lab = torch.tensor(io.imread(self.train_labels_path[idx]))
-            patches_lab = x_lab.unfold(1, self.patch_size, self.patch_size).unfold(0, self.patch_size, self.patch_size)
-            patches_lab = patches_lab.contiguous().view(-1, self.patch_size, self.patch_size)/255
-            
-            return (patches_img, patches_lab)
         
-        elif self.resize:
-            return (torch.tensor(resize(io.imread(self.train_images_path[idx]), self.resize)).view(1, self.resize[0], self.resize[1])/255,
-                    torch.tensor(resize(io.imread(self.train_labels_path[idx]), self.resize)).view(1, self.resize[0], self.resize[1])/255)
-
-        
-
-        # # if self.resize is None:
-        # #     return (torch.tensor(io.imread(self.train_images_path[idx])).view(1, 512, 512)/255, 
-        # #             torch.tensor(io.imread(self.train_labels_path[idx])).view(1, 512, 512)/255)
-        # return (torch.tensor(resize(io.imread(self.train_images_path[idx]), self.resize)).view(1, self.resize[0], self.resize[1])/255,
-        #         torch.tensor(resize(io.imread(self.train_labels_path[idx]), self.resize)).view(1, self.resize[0], self.resize[1])/255)
-
-
 class TEST_EM(Dataset):
     """
     Unlabelled Test Data
         From the 'Segmentation of neuronal structures in EM stacks'
     """
-    def __init__(self, data_path, resize_=None):
+    def __init__(self, data_path, resize_=None, patch_size=None):
         data_path = os.path.join(data_path, 'EM_ISBI_Challenge')
 
         self.test_images_path = glob.glob(os.path.join(data_path, 'test_images', '*.png'))
 
         self.resize = resize_
+        self.patch_size = patch_size
+        self.images = []
+
+        if self.patch_size is not None:
+            self.prepare_patches()
+
+    def prepare_patches(self):
+        for img_path in self.train_images_path:
+            img = io.imread(img_path)
+            if self.resize:
+                img = resize(img, self.resize)
+            img_patches = self.extract_patches(img)
+            self.images.extend(img_patches)
+
+    def extract_patches(self, image):
+        image = torch.tensor(image, dtype=torch.float32).unsqueeze(0)
+        patches = image.unfold(1, self.patch_size, self.patch_size)
+        patches = patches.unfold(2, self.patch_size, self.patch_size)
+        return patches.contiguous().view(-1, self.patch_size, self.patch_size)
+
 
     def __len__(self):
-        return len(self.test_images_path)
+        if self.patch_size: 
+            return len(self.images)
+        else:   
+            return len(self.test_images_path)
 
     
     def __getitem__(self, idx):
-        if self.resize is None:
-            return torch.tensor(io.imread(self.test_images_path[idx])).view(1, 512, 512)/255
-        return torch.tensor(resize(io.imread(self.test_images_path[idx]), self.resize)).view(1, self.resize[0], self.resize[1])/255
+        if self.patch_size is not None:
+            img = self.images[idx]
+            return img / 255
+        else:
+            torch.tensor(io.imread(self.test_images_path[idx])).view(1, 512, 512)/255
 
-
+        
 if __name__ == '__main__':
 
-    train_dataset = TRAIN_EM('02506MiniProject', patch_size=None)
+    train_dataset = TRAIN_EM('', patch_size=None)
 
     # for training in batches:
     train_loader = DataLoader(dataset=train_dataset,
