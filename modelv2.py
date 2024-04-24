@@ -1,14 +1,19 @@
 
 import torch
 from torch import nn
-from dataset import TRAIN_EM, TEST_EM
 import numpy as np  
+from dataset import TRAIN_EM, TEST_EM
 
 DEVICE = torch.device('mps') if torch.backends.mps.is_available() else 'cpu'
 
-
-
 class CNN_FOR_SEGMENTATION(nn.Module):
+    """
+    CNN for segmentation
+    - 2 Convolutional layers in the encoder
+    - 2 Deconvolutional layers in the decoder
+    - 1 final layer
+    """
+
     def __init__(self, ):
         super(CNN_FOR_SEGMENTATION, self).__init__() 
 
@@ -63,12 +68,20 @@ class CNN_FOR_SEGMENTATION(nn.Module):
 
 
 def train(model, dataloader, optimizer, criterion, num_epochs):
-    model.train()
+    """
+    Train the model
+    - model: CNN model
+    - dataloader: DataLoader
+    - optimizer: torch.optim
+    - criterion: loss function
+    - num_epochs: int
+    """
 
+    model.train()
+    loss_ = np.zeros((num_epochs, len(dataloader)))
     for epoch in range(num_epochs):
-        running_loss = 0.0
-        for images, masks in dataloader:
-            images, masks = images.to(device), masks.to(device)
+        for i, (images, masks) in enumerate(dataloader):
+            images, masks = images.to(DEVICE), masks.to(DEVICE)
 
             optimizer.zero_grad()
 
@@ -78,9 +91,12 @@ def train(model, dataloader, optimizer, criterion, num_epochs):
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
 
-        print(f'Epoch {epoch+1}, Loss: {running_loss/len(dataloader)}')
+            loss_[epoch, i] = loss.item()
+
+        print(f'Epoch {epoch+1}, Loss: {loss_[epoch].mean()}')
+
+    return loss_
 
 
 
@@ -89,7 +105,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    model = CNN_FOR_SEGMENTATION().to(device)
+    model = CNN_FOR_SEGMENTATION().to(DEVICE)
 
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -112,7 +128,11 @@ if __name__ == '__main__':
                                                shuffle = True)
     
 
-    train(model, train_loader, optimizer, criterion, 10)
+    loss = train(model, train_loader, optimizer, criterion, 3)
+
+    plt.plot(np.mean(loss, axis=1))
+    plt.savefig('loss.png')
+    plt.show()
 
     
 
@@ -122,7 +142,7 @@ if __name__ == '__main__':
 
 
     for i in range(N_images):
-        y_hat = model.forward(data[i][0].view(1,128,128).to(device))
+        y_hat = model.forward(data[i][0].view(1,128,128).to(DEVICE))
 
         predict = y_hat.squeeze().detach().cpu().numpy() > 0.5
 
@@ -130,11 +150,26 @@ if __name__ == '__main__':
 
         axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy())
         axs[i, 1].imshow(y_hat.squeeze().detach().cpu().numpy() > 0.5)
+        axs[i, 1].set_title(f"accuracy: {accuracy:.2f}")
         axs[i, 2].imshow(data[i][1].view(128,128))
-
-
+    plt.savefig('train.png')
     plt.show()
-        
+
+
+    data_ = TEST_EM('', patch_size=128)
+
+
+    N_images = 8
+
+    fig, axs = plt.subplots(8,2, figsize=(9,9))
+
+
+    for i in range(N_images):
+        y_hat = model.forward(data_[i].view(1,128,128).to(DEVICE))
+        axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy())
+        axs[i, 1].imshow(data_[i])
+    plt.savefig('test.png')
+    plt.show()
 
 
 

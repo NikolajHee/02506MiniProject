@@ -92,7 +92,7 @@ class TEST_EM(Dataset):
             self.prepare_patches()
 
     def prepare_patches(self):
-        for img_path in self.train_images_path:
+        for img_path in self.test_images_path:
             img = io.imread(img_path)
             if self.resize:
                 img = resize(img, self.resize)
