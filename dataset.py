@@ -28,9 +28,9 @@ class TRAIN_EM(Dataset):
     def __init__(self, data_path, resize_=None, patch_size=None):
         data_path = os.path.join(data_path, 'EM_ISBI_Challenge')
 
-        self.train_images_path = glob.glob(os.path.join(data_path, 'train_images', '*.png'))
+        self.train_images_path = sorted(glob.glob(os.path.join(data_path, 'train_images', '*.png')))
 
-        self.train_labels_path = glob.glob(os.path.join(data_path, 'train_labels', '*.png'))
+        self.train_labels_path = sorted(glob.glob(os.path.join(data_path, 'train_labels', '*.png')))
         
         self.resize = resize_
         self.patch_size = patch_size
@@ -127,7 +127,7 @@ class TEST_EM(Dataset):
 
 if __name__ == '__main__':
 
-    train_dataset = TRAIN_EM('', patch_size=None)
+    train_dataset = TRAIN_EM('02506MiniProject', patch_size=None)
 
     # for training in batches:
     train_loader = DataLoader(dataset=train_dataset,
