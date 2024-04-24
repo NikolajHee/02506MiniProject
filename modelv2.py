@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
     criterion = nn.BCELoss()
 
-    data = TRAIN_EM('', patch_size=128)
+    data = TRAIN_EM('02506MiniProject', patch_size=128)
 
     # fig, axs = plt.subplots(1,2, figsize=(9,9))
 
@@ -135,7 +135,8 @@ if __name__ == '__main__':
     plt.savefig('loss.png')
     plt.show()
 
-    
+
+
 
     N_images = 8
 
@@ -143,18 +144,56 @@ if __name__ == '__main__':
 
 
     for i in range(N_images):
-        y_hat = model.forward(data[i][0].view(1,128,128).to(DEVICE))
+        X, y = data[i]
+        y_hat = model.forward(X.to(DEVICE))
 
         predict = y_hat.squeeze().detach().cpu().numpy() > 0.5
 
-        accuracy = np.mean(predict == data[i][1].view(128,128).numpy())
+        accuracy = np.mean(predict == y.squeeze().numpy())
 
-        axs[i, 0].imshow(data[i][0].squeeze())
-        axs[i, 1].imshow(y_hat.squeeze().detach().cpu().numpy() > 0.5)
+        axs[i, 0].imshow(X.squeeze())
+        axs[i, 1].imshow(predict)
         axs[i, 1].set_title(f"accuracy: {accuracy:.2f}")
-        axs[i, 2].imshow(data[i][1].view(128,128))
+        axs[i, 2].imshow(y.squeeze())
+
     plt.savefig('train.png')
     plt.show()
+
+    model.eval()
+
+    def precision_recall(y, y_hat):
+        tp = y & y_hat
+        fp = ~y & y_hat
+        fn = y & ~y_hat
+        tn = ~y & ~y_hat
+
+        tpr = tp.sum()/(tn.sum()+fp.sum())
+        fpr = fp.sum()/(tn.sum()+fp.sum())
+
+        return tpr, fpr
+    
+    from sklearn.metrics import roc_curve, roc_auc_score
+
+    y = torch.tensor([])
+
+    y_hat = torch.tensor([])
+
+    for i in range(len(data)):
+        X, y_ = data[i]
+        y_hat_ = model.forward(X.to(DEVICE))
+
+        y = torch.cat((y, y_.flatten()))
+        y_hat = torch.cat((y_hat, y_hat_.flatten().detach().cpu()))
+
+    fpr, tpr, thresholds = roc_curve(y.numpy(), y_hat.numpy())
+    auc = roc_auc_score(y.numpy(), y_hat.numpy())
+
+    plt.title(f'AUC: {auc}')
+    plt.plot(fpr, tpr, linestyle='--', label='CNN')
+    plt.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', label='Random')
+    plt.legend()
+    plt.show()
+
 
 
     data_ = TEST_EM('', patch_size=128)
@@ -167,7 +206,7 @@ if __name__ == '__main__':
 
     for i in range(N_images):
         y_hat = model.forward(data_[i].view(1,128,128).to(DEVICE))
-        axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy())
+        axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy() > 0.5)
         axs[i, 1].imshow(data_[i].squeeze())
     plt.savefig('test.png')
     plt.show()
