@@ -1,7 +1,12 @@
 # 02506MiniProject
 A PyTorch Convolutional Neural Network (CNN) trained on the data 'Segmentation of neuronal structures in EM stacks1'
 
-
+# Project plan
+1) Create dataloader
+2) Split input images into smaller patches, e.g. 128x128
+3) Set up simple version of U-net
+4) Work on data augmentation
+5) Work on more complex version of model 
 
 # Ideas for direction
 - Transfer learning, to utiliez informaiton learned from other datasets
