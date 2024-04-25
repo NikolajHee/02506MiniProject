@@ -68,7 +68,7 @@ class UNet(nn.Module):
 
         x = self.dconv_up1(x)
         
-        out = self.conv_last(x)
+        x = self.conv_last(x)
         return self.sigmoid(x)
 
 class CNN_FOR_SEGMENTATION(nn.Module):
