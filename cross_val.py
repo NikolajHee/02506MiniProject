@@ -4,9 +4,9 @@ from torch.utils.data import DataLoader, Subset, ConcatDataset
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
-
+import glob, os
 import torch.nn.functional as F
-from dataset import TRAIN_EM, TEST_EM
+from dataset_v2 import TRAIN_EM, TEST_EM
 import numpy as np
 
 from model_v3 import CNN_FOR_SEGMENTATION
@@ -48,7 +48,7 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
-def cross_validate_model(model_name : str, dataset, k_folds=5, epochs=10, batch_size=16, learning_rate=0.001):
+def cross_validate_model(model_name : str, indices, k_folds=5, epochs=10, batch_size=16, learning_rate=0.001):
     '''
     Function to easily perform cross-validation on CNN
     
@@ -66,7 +66,7 @@ def cross_validate_model(model_name : str, dataset, k_folds=5, epochs=10, batch_
     criterion = nn.BCELoss()
     fold_performance = []
 
-    fold_tqdm = tqdm(enumerate(kf.split(dataset)), total=k_folds, desc="CV Folds Progress")
+    # fold_tqdm = tqdm(enumerate(kf.split(dataset)), total=k_folds, desc="CV Folds Progress")
     # for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
 
     train_loss = np.zeros((k_folds, epochs))
@@ -74,11 +74,11 @@ def cross_validate_model(model_name : str, dataset, k_folds=5, epochs=10, batch_
     dice_scores = np.zeros((k_folds, epochs))
     rand_error_scores = np.zeros((k_folds, epochs))
 
-    for fold, (train_idx, val_idx) in fold_tqdm:
-        train_subsampler = Subset(dataset, train_idx)
-        val_subsampler = Subset(dataset, val_idx)
-        train_loader = DataLoader(train_subsampler, batch_size=batch_size, shuffle=True)
-        val_loader = DataLoader(val_subsampler, batch_size=batch_size, shuffle=False)
+    for fold, (train_idx, val_idx) in enumerate(kf.split(indices)):
+        train_dataset = TRAIN_EM(data_path, indices=train_idx, elastic=True, mirror_h=True, mirror_v=True, total_augment=True)
+        val_dataset = TRAIN_EM(data_path, indices=val_idx)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
         if model_name == "v3":
             model = CNN_FOR_SEGMENTATION().to(device)
@@ -150,7 +150,9 @@ def cross_validate_model(model_name : str, dataset, k_folds=5, epochs=10, batch_
 if __name__ == '__main__':
     dataset = TRAIN_EM('')
 
-    result = cross_validate_model(model_name="v3", dataset=dataset, k_folds=8, epochs=3, batch_size=16, learning_rate=0.001)
+    data_path = ""
+    full_indices = list(range(len(glob.glob(os.path.join(data_path, 'EM_ISBI_Challenge/train_images', '*.png')))))
+    result = cross_validate_model(model_name="v3", indices=full_indices, k_folds=8, epochs=3, batch_size=16, learning_rate=0.001)
 
     from utils import cool_plots
 

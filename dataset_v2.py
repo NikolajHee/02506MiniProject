@@ -28,7 +28,7 @@ class TRAIN_EM(Dataset):
     Labelled Training Data
         From the 'Segmentation of neuronal structures in EM stacks'
     """
-    def __init__(self, data_path, elastic=False, mirror_h=False, mirror_v=False, total_augment=False):
+    def __init__(self, data_path, indices=None, elastic=False, mirror_h=False, mirror_v=False, total_augment=False):
         data_path = os.path.join(data_path, 'EM_ISBI_Challenge')
         self.train_images_path = sorted(glob.glob(os.path.join(data_path, 'train_images', '*.png')))
         self.train_labels_path = sorted(glob.glob(os.path.join(data_path, 'train_labels', '*.png')))
@@ -36,6 +36,11 @@ class TRAIN_EM(Dataset):
         assert self.train_images_path != [], \
             "No training images found, please check the path to the training images: " \
             f"{data_path}/train_images/*.png"
+
+        if indices is not None: 
+            # Subsetting the paths with the provided indices
+            self.train_images_path = [self.train_images_path[i] for i in indices]
+            self.train_labels_path = [self.train_labels_path[i] for i in indices]
 
         self.elastic = elastic
         self.mirror_h = mirror_h
