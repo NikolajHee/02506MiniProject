@@ -151,12 +151,13 @@ if __name__ == '__main__':
     dataset = TRAIN_EM('')
 
     data_path = ""
+    num_folds = 5
     full_indices = list(range(len(glob.glob(os.path.join(data_path, 'EM_ISBI_Challenge/train_images', '*.png')))))
-    result = cross_validate_model(model_name="v3", indices=full_indices, k_folds=8, epochs=3, batch_size=16, learning_rate=0.001)
+    result = cross_validate_model(model_name="v3", indices=full_indices, k_folds=num_folds, epochs=30, batch_size=16, learning_rate=0.001)
 
-    from utils import cool_plots
+    # from utils import cool_plots
 
-    cool_plots()
+    # cool_plots()
     
     epoch, batches = result['train_loss'].shape
 
@@ -164,7 +165,7 @@ if __name__ == '__main__':
 
     plt.figure(figsize=(8, 4))
 
-    for i in range(8):
+    for i in range(num_folds):
         plt.plot(result['train_loss'][i], label=f'Fold {i+1}', alpha=0.5)
     plt.title('Binary Classification Entropy Loss')
     plt.xlabel('Epoch')
