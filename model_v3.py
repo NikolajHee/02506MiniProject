@@ -139,8 +139,6 @@ class CNN_FOR_SEGMENTATION(nn.Module):
         return self.sigmoid(x)
 
 
-    def loss(self, y_hat, y):
-        return - (y * torch.log(y_hat) + (1-y) * torch.log(1-y_hat))
     
 # TRAINING
 def train(model, dataloader, optimizer, criterion, num_epochs):
@@ -178,78 +176,83 @@ def train(model, dataloader, optimizer, criterion, num_epochs):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
+    # own imports
 
-    PATCH_SIZE = None
-    if PATCH_SIZE == None:
-        img_dim = 512
-    else:
-        img_dim = PATCH_SIZE
+    
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    from utils import cool_plots
+    cool_plots()
 
+    # parameters
+    PATCH_SIZE = 128
+    learning_rate = 0.0005
+    batch_size = 8
+    num_epochs = 100
+    save_path = 'pictures'
+    data_path = ''
+    seed = 0
+    
+
+    from utils import random_seed
+    random_seed(seed)
+    
+    # model
     model = CNN_FOR_SEGMENTATION().to(DEVICE)
 
+    # optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-
+    # loss function
     criterion = nn.BCELoss()
 
-    data = TRAIN_EM('', patch_size=PATCH_SIZE)
 
-    # fig, axs = plt.subplots(1,2, figsize=(9,9))
+    # data
+    img_dim = PATCH_SIZE if PATCH_SIZE else 512
 
-    # axs[0].imshow(data[2][0].squeeze())
-    # axs[1].imshow(data[2][1].squeeze())
-
-    # plt.show()
+    train_data, test_data = TRAIN_EM(data_path, patch_size=PATCH_SIZE), TEST_EM(data_path, patch_size=PATCH_SIZE)
 
 
-    train_loader = torch.utils.data.DataLoader(dataset = data,
-                                               batch_size = 16,
+    train_loader = torch.utils.data.DataLoader(dataset = train_data,
+                                               batch_size = batch_size,
                                                shuffle = True)
     
+    # training
+    loss = train(model=model, 
+                 dataloader=train_loader, 
+                 optimizer=optimizer, 
+                 criterion=criterion,
+                 num_epochs=num_epochs)
 
-    loss = train(model, train_loader, optimizer, criterion, 200)
+    model.eval()
+    # save loss
+    from utils import save_loss
 
-    plt.plot(np.mean(loss, axis=1))
-    plt.savefig('loss.png')
-    plt.show()
+    save_loss(loss, save_path)
 
+    # ROC curve
+    from utils import roc_curve_
+
+    roc_curve_(model=model, 
+               data=train_data, 
+               device=DEVICE,
+               save_path=save_path)
     
 
-    N_images = 8
+    # plot train and test images
+    from utils import plot_train_images
 
-    fig, axs = plt.subplots(8,3, figsize=(9,9))
-
-        
-    for i in range(N_images):
-        y_hat = model.forward(data[i][0].view(1,img_dim,img_dim).to(DEVICE))
-
-        predict = y_hat.squeeze().detach().cpu().numpy() > 0.5
-
-        accuracy = np.mean(predict == data[i][1].view(img_dim,img_dim).numpy())
-
-        axs[i, 0].imshow(data[i][0].squeeze())
-        axs[i, 1].imshow(y_hat.squeeze().detach().cpu().numpy() > 0.5)
-        axs[i, 1].set_title(f"accuracy: {accuracy:.2f}")
-        axs[i, 2].imshow(data[i][1].view(img_dim,img_dim))
-    plt.savefig('train.png')
-    plt.show()
+    plot_train_images(model=model,
+                      data=train_data,
+                      N_images=10,
+                      save_path=save_path,
+                      device=DEVICE)
 
 
-    data_ = TEST_EM('', patch_size=PATCH_SIZE)
+    from utils import plot_test_images
 
+    plot_test_images(model=model,
+                     data=test_data,
+                     N_images=10,
+                     save_path=save_path,
+                     device=DEVICE)
 
-    N_images = 8
-
-    fig, axs = plt.subplots(8,2, figsize=(9,9))
-
-
-    for i in range(N_images):
-        y_hat = model.forward(data_[i].view(1,img_dim,img_dim).to(DEVICE))
-        axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy() > 0.5)
-        axs[i, 1].imshow(data_[i].squeeze())
-    plt.savefig('test.png')
-    plt.show()
