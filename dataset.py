@@ -32,8 +32,12 @@ class TRAIN_EM(Dataset):
 
         self.train_labels_path = sorted(glob.glob(os.path.join(data_path, 'train_labels', '*.png')))
 
-        if self.train_images_path == []:
-            raise ValueError("No test images found")
+        assert self.train_images_path != [], \
+            "No training images found, please check the path to the training images: " \
+            f"{data_path}/train_images/*.png"
+
+
+
         
         self.resize = resize_
         self.patch_size = patch_size
@@ -87,8 +91,9 @@ class TEST_EM(Dataset):
 
         self.test_images_path = glob.glob(os.path.join(data_path, 'test_images', '*.png'))
 
-        if self.test_images_path == []:
-            raise ValueError("No test images found")
+        assert self.test_images_path != [], \
+            "No test images found, please check the path to the test images: " \
+            f"{data_path}/test_images/*.png"
 
         self.resize = resize_
         self.patch_size = patch_size
