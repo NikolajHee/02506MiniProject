@@ -31,6 +31,9 @@ class TRAIN_EM(Dataset):
         self.train_images_path = sorted(glob.glob(os.path.join(data_path, 'train_images', '*.png')))
 
         self.train_labels_path = sorted(glob.glob(os.path.join(data_path, 'train_labels', '*.png')))
+
+        if self.train_images_path == []:
+            raise ValueError("No test images found")
         
         self.resize = resize_
         self.patch_size = patch_size
@@ -84,6 +87,9 @@ class TEST_EM(Dataset):
 
         self.test_images_path = glob.glob(os.path.join(data_path, 'test_images', '*.png'))
 
+        if self.test_images_path == []:
+            raise ValueError("No test images found")
+
         self.resize = resize_
         self.patch_size = patch_size
         self.images = []
@@ -118,7 +124,7 @@ class TEST_EM(Dataset):
             img = self.images[idx]
             return img.view(1,self.patch_size,self.patch_size) / 255
         else:
-            torch.tensor(io.imread(self.test_images_path[idx])).view(1, 512, 512)/255
+            return torch.tensor(io.imread(self.test_images_path[idx])).view(1, 512, 512)/255
 
         
 if __name__ == '__main__':
