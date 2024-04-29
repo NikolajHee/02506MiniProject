@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from dataset_v2 import TRAIN_EM, TEST_EM
 import numpy as np
 
-from model_v3 import CNN_FOR_SEGMENTATION
+
 
 def dice_coefficient(pred, target):
     '''
@@ -81,6 +81,13 @@ def cross_validate_model(model_name : str, indices, k_folds=5, epochs=10, batch_
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
         if model_name == "v3":
+            from model_v3 import CNN_FOR_SEGMENTATION
+            model = CNN_FOR_SEGMENTATION().to(device)
+            model.apply(init_weights) # initialize weights
+            model.train()
+
+        if model_name == 'v4':
+            from model_v4 import CNN_FOR_SEGMENTATION
             model = CNN_FOR_SEGMENTATION().to(device)
             model.apply(init_weights) # initialize weights
             model.train()
@@ -152,7 +159,7 @@ if __name__ == '__main__':
 
     data_path = ""
     full_indices = list(range(len(glob.glob(os.path.join(data_path, 'EM_ISBI_Challenge/train_images', '*.png')))))
-    result = cross_validate_model(model_name="v3", indices=full_indices, k_folds=8, epochs=3, batch_size=16, learning_rate=0.001)
+    result = cross_validate_model(model_name="v4", indices=full_indices, k_folds=8, epochs=15, batch_size=16, learning_rate=0.001)
 
     from utils import cool_plots
 
