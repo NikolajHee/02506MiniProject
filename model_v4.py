@@ -46,12 +46,11 @@ class CNN_FOR_SEGMENTATION(nn.Module):
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(2)
         )
         
         # Decoder
         self.decoder1 = nn.Sequential(
-            nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2),
+            nn.Conv2d(64, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(32, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
@@ -152,7 +151,7 @@ if __name__ == '__main__':
     batch_size = 8
     num_epochs = 100
     save_path = 'pictures'
-    data_path = ''#'02506MiniProject'
+    data_path = '02506MiniProject'
     seed = 0
     
 
