@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dataset import TRAIN_EM, TEST_EM
+
 import numpy as np  
 
 DEVICE = torch.device('mps') if torch.backends.mps.is_available() else 'cpu'
@@ -51,10 +51,11 @@ class CNN_FOR_SEGMENTATION(nn.Module):
         # Decoder
         self.decoder1 = nn.Sequential(
             nn.Conv2d(64, 32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
-            nn.ReLU()
+            nn.ReLU(),
+            #nn.Conv2d(32, 32, kernel_size=3, padding=1),
+            #nn.BatchNorm2d(32),
+            #nn.ReLU()
         )
         self.decoder2 = nn.Sequential(
             nn.ConvTranspose2d(64, 16, kernel_size=2, stride=2),
@@ -146,12 +147,12 @@ if __name__ == '__main__':
     cool_plots()
 
     # parameters
-    PATCH_SIZE = 128
+    PATCH_SIZE = None
     learning_rate = 0.0005
     batch_size = 8
-    num_epochs = 100
+    num_epochs = 3
     save_path = 'pictures'
-    data_path = '02506MiniProject'
+    data_path = ''
     seed = 0
     
 
@@ -170,8 +171,17 @@ if __name__ == '__main__':
 
     # data
     img_dim = PATCH_SIZE if PATCH_SIZE else 512
+    
+    from dataset_v2 import TRAIN_EM, TEST_EM
 
-    train_data, test_data = TRAIN_EM(data_path, patch_size=PATCH_SIZE), TEST_EM(data_path, patch_size=PATCH_SIZE)
+    train_data = TRAIN_EM(data_path, 
+                          elastic=True, 
+                          mirror_h=True, 
+                          mirror_v=True, 
+                          total_augment=True)
+    
+
+    test_data = TEST_EM(data_path, patch_size=PATCH_SIZE)
 
 
     train_loader = torch.utils.data.DataLoader(dataset = train_data,
