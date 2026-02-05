@@ -5,7 +5,7 @@ A PyTorch Convolutional Neural Network (CNN) trained on the data 'Segmentation o
 1) Create dataloader (**done**)
 2) Split input images into smaller patches, e.g. 128x128 (**done**)
 3) Set up simple version of U-net (**in progress**)
-4) Set up use of precision/recall/F-score 
+4) Set up use of precision/recall/F-score
 5) Work on data augmentation (**in progress**)
 6) Work on more complex version of model
 7) Implement cross-validation
@@ -20,4 +20,3 @@ A PyTorch Convolutional Neural Network (CNN) trained on the data 'Segmentation o
 # Papers
 - https://arxiv.org/pdf/1505.04597.pdf
 - Crowdsourcing the creation of image segmentation algorithms for connectomics. Frontiers in neuroanatomy, Ignacio Arganda-Carreras
-

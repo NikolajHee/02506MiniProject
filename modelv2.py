@@ -1,10 +1,10 @@
-
 import torch
 from torch import nn
-import numpy as np  
+import numpy as np
 from dataset import TRAIN_EM, TEST_EM
 
-DEVICE = torch.device('mps') if torch.backends.mps.is_available() else 'cpu'
+DEVICE = torch.device("mps") if torch.backends.mps.is_available() else "cpu"
+
 
 class CNN_FOR_SEGMENTATION(nn.Module):
     """
@@ -14,42 +14,44 @@ class CNN_FOR_SEGMENTATION(nn.Module):
     - 1 final layer
     """
 
-    def __init__(self, ):
-        super(CNN_FOR_SEGMENTATION, self).__init__() 
+    def __init__(self):
+        super(CNN_FOR_SEGMENTATION, self).__init__()
 
         # no skip connections
 
         self.encoder1 = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2)
+            nn.MaxPool2d(2),
         )
         self.encoder2 = nn.Sequential(
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2)
+            nn.MaxPool2d(2),
         )
-        
+
         # Decoder
         self.decoder1 = nn.Sequential(
             nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.decoder2 = nn.Sequential(
             nn.ConvTranspose2d(16, 8, kernel_size=2, stride=2),
-            nn.ReLU()
+            nn.ReLU(),
         )
-        
+
         # Final layer
-        self.final = nn.Conv2d(8, 1, kernel_size=1)  # Output one channel for binary mask
+        self.final = nn.Conv2d(
+            8,
+            1,
+            kernel_size=1,
+        )  # Output one channel for binary mask
 
         self.sigmoid = nn.Sigmoid()
 
-
-    
     def forward(self, x):
         # Pass through the encoder
-        #print(x.shape)
+        # print(x.shape)
         x = self.encoder1(x)
         x = self.encoder2(x)
 
@@ -62,10 +64,8 @@ class CNN_FOR_SEGMENTATION(nn.Module):
 
         return self.sigmoid(x)
 
-
     def loss(self, y_hat, y):
-        return - (y * torch.log(y_hat) + (1-y) * torch.log(1-y_hat))
-    
+        return -(y * torch.log(y_hat) + (1 - y) * torch.log(1 - y_hat))
 
 
 def train(model, dataloader, optimizer, criterion, num_epochs):
@@ -92,29 +92,25 @@ def train(model, dataloader, optimizer, criterion, num_epochs):
             loss.backward()
             optimizer.step()
 
-
             loss_[epoch, i] = loss.item()
 
-        print(f'Epoch {epoch+1}, Loss: {loss_[epoch].mean()}')
+        print(f"Epoch {epoch+1}, Loss: {loss_[epoch].mean()}")
 
     return loss_
 
 
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = CNN_FOR_SEGMENTATION().to(DEVICE)
 
-
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
 
     criterion = nn.BCELoss()
 
-    data = TRAIN_EM('02506MiniProject', patch_size=128)
+    data = TRAIN_EM("02506MiniProject", patch_size=128)
 
     # fig, axs = plt.subplots(1,2, figsize=(9,9))
 
@@ -123,25 +119,21 @@ if __name__ == '__main__':
 
     # plt.show()
 
-
-    train_loader = torch.utils.data.DataLoader(dataset = data,
-                                               batch_size = 16,
-                                               shuffle = True)
-    
+    train_loader = torch.utils.data.DataLoader(
+        dataset=data,
+        batch_size=16,
+        shuffle=True,
+    )
 
     loss = train(model, train_loader, optimizer, criterion, 100)
 
     plt.plot(np.mean(loss, axis=1))
-    plt.savefig('loss.png')
+    plt.savefig("loss.png")
     plt.show()
-
-
-
 
     N_images = 8
 
-    fig, axs = plt.subplots(8,3, figsize=(9,9))
-
+    fig, axs = plt.subplots(8, 3, figsize=(9, 9))
 
     for i in range(N_images):
         X, y = data[i]
@@ -156,7 +148,7 @@ if __name__ == '__main__':
         axs[i, 1].set_title(f"accuracy: {accuracy:.2f}")
         axs[i, 2].imshow(y.squeeze())
 
-    plt.savefig('train.png')
+    plt.savefig("train.png")
     plt.show()
 
     model.eval()
@@ -164,14 +156,14 @@ if __name__ == '__main__':
     def precision_recall(y, y_hat):
         tp = y & y_hat
         fp = ~y & y_hat
-        fn = y & ~y_hat
+        # fn = y & ~y_hat
         tn = ~y & ~y_hat
 
-        tpr = tp.sum()/(tn.sum()+fp.sum())
-        fpr = fp.sum()/(tn.sum()+fp.sum())
+        tpr = tp.sum() / (tn.sum() + fp.sum())
+        fpr = fp.sum() / (tn.sum() + fp.sum())
 
         return tpr, fpr
-    
+
     from sklearn.metrics import roc_curve, roc_auc_score
 
     y = torch.tensor([])
@@ -188,35 +180,26 @@ if __name__ == '__main__':
     fpr, tpr, thresholds = roc_curve(y.numpy(), y_hat.numpy())
     auc = roc_auc_score(y.numpy(), y_hat.numpy())
 
-    plt.title(f'AUC: {auc}')
-    plt.plot(fpr, tpr, linestyle='--', label='CNN')
-    plt.plot(np.linspace(0, 1, 100), np.linspace(0, 1, 100), linestyle='--', label='Random')
+    plt.title(f"AUC: {auc}")
+    plt.plot(fpr, tpr, linestyle="--", label="CNN")
+    plt.plot(
+        np.linspace(0, 1, 100),
+        np.linspace(0, 1, 100),
+        linestyle="--",
+        label="Random",
+    )
     plt.legend()
     plt.show()
 
-
-
-    data_ = TEST_EM('', patch_size=128)
-
+    data_ = TEST_EM("", patch_size=128)
 
     N_images = 8
 
-    fig, axs = plt.subplots(8,2, figsize=(9,9))
-
+    fig, axs = plt.subplots(8, 2, figsize=(9, 9))
 
     for i in range(N_images):
-        y_hat = model.forward(data_[i].view(1,128,128).to(DEVICE))
+        y_hat = model.forward(data_[i].view(1, 128, 128).to(DEVICE))
         axs[i, 0].imshow(y_hat.squeeze().detach().cpu().numpy() > 0.5)
         axs[i, 1].imshow(data_[i].squeeze())
-    plt.savefig('test.png')
+    plt.savefig("test.png")
     plt.show()
-
-
-
-
-    
-
-
-
-
-

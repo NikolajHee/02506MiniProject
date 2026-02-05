@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-import numpy as np  
+import numpy as np
 
-DEVICE = torch.device('mps') if torch.backends.mps.is_available() else 'cpu'
-
+DEVICE = torch.device("mps") if torch.backends.mps.is_available() else "cpu"
 
 
 class CNN_FOR_SEGMENTATION(nn.Module):
@@ -16,8 +14,8 @@ class CNN_FOR_SEGMENTATION(nn.Module):
     - 1 final layer
     """
 
-    def __init__(self, ):
-        super(CNN_FOR_SEGMENTATION, self).__init__() 
+    def __init__(self):
+        super(CNN_FOR_SEGMENTATION, self).__init__()
 
         # no skip connections
 
@@ -28,7 +26,7 @@ class CNN_FOR_SEGMENTATION(nn.Module):
             nn.Conv2d(16, 16, kernel_size=3, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(2)
+            nn.MaxPool2d(2),
         )
         self.encoder2 = nn.Sequential(
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
@@ -37,7 +35,7 @@ class CNN_FOR_SEGMENTATION(nn.Module):
             nn.Conv2d(32, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(2)
+            nn.MaxPool2d(2),
         )
         self.encoder3 = nn.Sequential(
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
@@ -47,41 +45,43 @@ class CNN_FOR_SEGMENTATION(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
         )
-        
+
         # Decoder
         self.decoder1 = nn.Sequential(
             nn.Conv2d(64, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            #nn.Conv2d(32, 32, kernel_size=3, padding=1),
-            #nn.BatchNorm2d(32),
-            #nn.ReLU()
+            # nn.Conv2d(32, 32, kernel_size=3, padding=1),
+            # nn.BatchNorm2d(32),
+            # nn.ReLU()
         )
         self.decoder2 = nn.Sequential(
             nn.ConvTranspose2d(64, 16, kernel_size=2, stride=2),
             nn.ReLU(),
             nn.Conv2d(16, 16, kernel_size=3, padding=1),
             nn.BatchNorm2d(16),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.decoder3 = nn.Sequential(
             nn.ConvTranspose2d(32, 8, kernel_size=2, stride=2),
             nn.ReLU(),
             nn.Conv2d(8, 8, kernel_size=3, padding=1),
             nn.BatchNorm2d(8),
-            nn.ReLU()
+            nn.ReLU(),
         )
-        
+
         # Final layer
-        self.final = nn.Conv2d(8, 1, kernel_size=1)  # Output one channel for binary mask
+        self.final = nn.Conv2d(
+            8,
+            1,
+            kernel_size=1,
+        )  # Output one channel for binary mask
 
         self.sigmoid = nn.Sigmoid()
 
-
-    
     def forward(self, x):
         # Pass through the encoder
-        #print(x.shape)
+        # print(x.shape)
         x1 = self.encoder1(x)
         x2 = self.encoder2(x1)
         x = self.encoder3(x2)
@@ -97,7 +97,6 @@ class CNN_FOR_SEGMENTATION(nn.Module):
         return self.sigmoid(x)
 
 
-    
 # TRAINING
 def train(model, dataloader, optimizer, criterion, num_epochs):
     """
@@ -123,27 +122,18 @@ def train(model, dataloader, optimizer, criterion, num_epochs):
             loss.backward()
             optimizer.step()
 
-
             loss_[epoch, i] = loss.item()
 
-        print(f'Epoch {epoch+1}, Loss: {loss_[epoch].mean()}')
+        print(f"Epoch {epoch+1}, Loss: {loss_[epoch].mean()}")
 
     return loss_
 
 
-
-
-
-
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     # own imports
 
-    
-
     from utils import cool_plots
+
     cool_plots()
 
     # parameters
@@ -151,14 +141,14 @@ if __name__ == '__main__':
     learning_rate = 0.0005
     batch_size = 8
     num_epochs = 3
-    save_path = 'pictures'
-    data_path = ''
+    save_path = "pictures"
+    data_path = ""
     seed = 0
-    
 
     from utils import random_seed
+
     random_seed(seed)
-    
+
     # model
     model = CNN_FOR_SEGMENTATION().to(DEVICE)
 
@@ -168,32 +158,35 @@ if __name__ == '__main__':
     # loss function
     criterion = nn.BCELoss()
 
-
     # data
     img_dim = PATCH_SIZE if PATCH_SIZE else 512
-    
+
     from dataset_v2 import TRAIN_EM, TEST_EM
 
-    train_data = TRAIN_EM(data_path, 
-                          elastic=True, 
-                          mirror_h=True, 
-                          mirror_v=True, 
-                          total_augment=True)
-    
+    train_data = TRAIN_EM(
+        data_path,
+        elastic=True,
+        mirror_h=True,
+        mirror_v=True,
+        total_augment=True,
+    )
 
     test_data = TEST_EM(data_path, patch_size=PATCH_SIZE)
 
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_data,
+        batch_size=batch_size,
+        shuffle=True,
+    )
 
-    train_loader = torch.utils.data.DataLoader(dataset = train_data,
-                                               batch_size = batch_size,
-                                               shuffle = True)
-    
     # training
-    loss = train(model=model, 
-                 dataloader=train_loader, 
-                 optimizer=optimizer, 
-                 criterion=criterion,
-                 num_epochs=num_epochs)
+    loss = train(
+        model=model,
+        dataloader=train_loader,
+        optimizer=optimizer,
+        criterion=criterion,
+        num_epochs=num_epochs,
+    )
 
     model.eval()
     # save loss
@@ -204,27 +197,30 @@ if __name__ == '__main__':
     # ROC curve
     from utils import roc_curve_
 
-    roc_curve_(model=model, 
-               data=train_data, 
-               device=DEVICE,
-               save_path=save_path)
-    
+    roc_curve_(
+        model=model,
+        data=train_data,
+        device=DEVICE,
+        save_path=save_path,
+    )
 
     # plot train and test images
     from utils import plot_train_images
 
-    plot_train_images(model=model,
-                      data=train_data,
-                      N_images=10,
-                      save_path=save_path,
-                      device=DEVICE)
-
+    plot_train_images(
+        model=model,
+        data=train_data,
+        N_images=10,
+        save_path=save_path,
+        device=DEVICE,
+    )
 
     from utils import plot_test_images
 
-    plot_test_images(model=model,
-                     data=test_data,
-                     N_images=10,
-                     save_path=save_path,
-                     device=DEVICE)
-
+    plot_test_images(
+        model=model,
+        data=test_data,
+        N_images=10,
+        save_path=save_path,
+        device=DEVICE,
+    )

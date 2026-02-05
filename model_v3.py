@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from dataset import TRAIN_EM, TEST_EM
-import numpy as np  
+import numpy as np
 
-DEVICE = torch.device('mps') if torch.backends.mps.is_available() else 'cpu'
+DEVICE = torch.device("mps") if torch.backends.mps.is_available() else "cpu"
 
 
 class DoubleConv(nn.Module):
@@ -18,11 +17,12 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x):
         return self.double_conv(x)
+
 
 class UNet(nn.Module):
     def __init__(self):
@@ -30,19 +30,19 @@ class UNet(nn.Module):
         self.dconv_down1 = DoubleConv(1, 64)
         self.dconv_down2 = DoubleConv(64, 128)
         self.dconv_down3 = DoubleConv(128, 256)
-        self.dconv_down4 = DoubleConv(256, 512)        
+        self.dconv_down4 = DoubleConv(256, 512)
 
         self.maxpool = nn.MaxPool2d(2)
-        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)        
-        
+        self.upsample = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+
         self.dconv_up3 = DoubleConv(256 + 512, 256)
         self.dconv_up2 = DoubleConv(128 + 256, 128)
         self.dconv_up1 = DoubleConv(128 + 64, 64)
-        
+
         self.conv_last = nn.Conv2d(64, 1, 1)
 
         self.sigmoid = nn.Sigmoid()
-        
+
     def forward(self, x):
         conv1 = self.dconv_down1(x)
         x = self.maxpool(conv1)
@@ -54,10 +54,10 @@ class UNet(nn.Module):
         x = self.maxpool(conv3)
 
         x = self.dconv_down4(x)
-        
-        x = self.upsample(x)        
+
+        x = self.upsample(x)
         x = torch.cat([x, conv3], dim=1)
-        
+
         x = self.dconv_up3(x)
         x = self.upsample(x)
         x = torch.cat([x, conv2], dim=1)
@@ -67,9 +67,10 @@ class UNet(nn.Module):
         x = torch.cat([x, conv1], dim=1)
 
         x = self.dconv_up1(x)
-        
+
         x = self.conv_last(x)
         return self.sigmoid(x)
+
 
 class CNN_FOR_SEGMENTATION(nn.Module):
     """
@@ -79,51 +80,53 @@ class CNN_FOR_SEGMENTATION(nn.Module):
     - 1 final layer
     """
 
-    def __init__(self, ):
-        super(CNN_FOR_SEGMENTATION, self).__init__() 
+    def __init__(self):
+        super(CNN_FOR_SEGMENTATION, self).__init__()
 
         # no skip connections
 
         self.encoder1 = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2)
+            nn.MaxPool2d(2),
         )
         self.encoder2 = nn.Sequential(
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2)
+            nn.MaxPool2d(2),
         )
         self.encoder3 = nn.Sequential(
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(2)
+            nn.MaxPool2d(2),
         )
-        
+
         # Decoder
         self.decoder1 = nn.Sequential(
             nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.decoder2 = nn.Sequential(
             nn.ConvTranspose2d(32, 16, kernel_size=2, stride=2),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.decoder3 = nn.Sequential(
             nn.ConvTranspose2d(16, 8, kernel_size=2, stride=2),
-            nn.ReLU()
+            nn.ReLU(),
         )
-        
+
         # Final layer
-        self.final = nn.Conv2d(8, 1, kernel_size=1)  # Output one channel for binary mask
+        self.final = nn.Conv2d(
+            8,
+            1,
+            kernel_size=1,
+        )  # Output one channel for binary mask
 
         self.sigmoid = nn.Sigmoid()
 
-
-    
     def forward(self, x):
         # Pass through the encoder
-        #print(x.shape)
+        # print(x.shape)
         x = self.encoder1(x)
         x = self.encoder2(x)
         x = self.encoder3(x)
@@ -139,7 +142,6 @@ class CNN_FOR_SEGMENTATION(nn.Module):
         return self.sigmoid(x)
 
 
-    
 # TRAINING
 def train(model, dataloader, optimizer, criterion, num_epochs):
     """
@@ -165,22 +167,18 @@ def train(model, dataloader, optimizer, criterion, num_epochs):
             loss.backward()
             optimizer.step()
 
-
             loss_[epoch, i] = loss.item()
 
-        print(f'Epoch {epoch+1}, Loss: {loss_[epoch].mean()}')
+        print(f"Epoch {epoch+1}, Loss: {loss_[epoch].mean()}")
 
     return loss_
 
 
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     # own imports
 
-    
-
     from utils import cool_plots
+
     cool_plots()
 
     # parameters
@@ -188,14 +186,14 @@ if __name__ == '__main__':
     learning_rate = 0.0005
     batch_size = 8
     num_epochs = 100
-    save_path = 'pictures'
-    data_path = ''
+    save_path = "pictures"
+    data_path = ""
     seed = 0
-    
 
     from utils import random_seed
+
     random_seed(seed)
-    
+
     # model
     model = CNN_FOR_SEGMENTATION().to(DEVICE)
 
@@ -205,23 +203,28 @@ if __name__ == '__main__':
     # loss function
     criterion = nn.BCELoss()
 
-
     # data
     img_dim = PATCH_SIZE if PATCH_SIZE else 512
 
-    train_data, test_data = TRAIN_EM(data_path, patch_size=PATCH_SIZE), TEST_EM(data_path, patch_size=PATCH_SIZE)
+    train_data, test_data = (
+        TRAIN_EM(data_path, patch_size=PATCH_SIZE),
+        TEST_EM(data_path, patch_size=PATCH_SIZE),
+    )
 
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_data,
+        batch_size=batch_size,
+        shuffle=True,
+    )
 
-    train_loader = torch.utils.data.DataLoader(dataset = train_data,
-                                               batch_size = batch_size,
-                                               shuffle = True)
-    
     # training
-    loss = train(model=model, 
-                 dataloader=train_loader, 
-                 optimizer=optimizer, 
-                 criterion=criterion,
-                 num_epochs=num_epochs)
+    loss = train(
+        model=model,
+        dataloader=train_loader,
+        optimizer=optimizer,
+        criterion=criterion,
+        num_epochs=num_epochs,
+    )
 
     model.eval()
     # save loss
@@ -232,27 +235,30 @@ if __name__ == '__main__':
     # ROC curve
     from utils import roc_curve_
 
-    roc_curve_(model=model, 
-               data=train_data, 
-               device=DEVICE,
-               save_path=save_path)
-    
+    roc_curve_(
+        model=model,
+        data=train_data,
+        device=DEVICE,
+        save_path=save_path,
+    )
 
     # plot train and test images
     from utils import plot_train_images
 
-    plot_train_images(model=model,
-                      data=train_data,
-                      N_images=10,
-                      save_path=save_path,
-                      device=DEVICE)
-
+    plot_train_images(
+        model=model,
+        data=train_data,
+        N_images=10,
+        save_path=save_path,
+        device=DEVICE,
+    )
 
     from utils import plot_test_images
 
-    plot_test_images(model=model,
-                     data=test_data,
-                     N_images=10,
-                     save_path=save_path,
-                     device=DEVICE)
-
+    plot_test_images(
+        model=model,
+        data=test_data,
+        N_images=10,
+        save_path=save_path,
+        device=DEVICE,
+    )
